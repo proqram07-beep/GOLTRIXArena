@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>GOLTRIX Arcade</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#07100b; --panel:#0f1d15; --line:#1f3a2a; --green:#1fbf62; --green-d:#14883f;
+  --gold:#f2c14e; --gold-d:#b8892a; --text:#eef5ef; --mute:#8aa595; --red:#ef4444;
+  --head:"Barlow Condensed","Arial Narrow",Impact,sans-serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:radial-gradient(120% 60% at 50% 0%,#0f2a1a 0%,var(--bg) 60%) fixed;
+  color:var(--text);font-family:var(--body);
+  padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0);
+  overflow-x:hidden;
+}
+#app{max-width:480px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding:14px 16px 20px;gap:14px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.user{display:flex;align-items:center;gap:10px;min-width:0}
+.avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--green),var(--gold));display:grid;place-items:center;font:800 18px var(--head);color:#06130c;flex:none}
+.uname{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.usub{font-size:12px;color:var(--mute)}
+.score{text-align:right;flex:none}
+.score b{display:block;font:800 30px/1 var(--head);color:var(--gold);letter-spacing:.5px}
+.score span{font-size:12px;color:var(--mute)}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px 16px;position:relative}
+.pvp-card{background:linear-gradient(135deg,#13281c,#0b1810);border:1px solid var(--gold-d)}
+.q-title{font:700 24px/1.1 var(--head);margin-bottom:14px}
+.path{display:flex;flex-wrap:wrap;align-items:center;gap:8px 6px}
+.club{background:#0b1710;border:1px solid var(--line);border-radius:10px;padding:8px 11px;font-weight:600;font-size:14px}
+.club.last{border-color:var(--gold);color:var(--gold);box-shadow:0 0 0 1px rgba(242,193,78,.25)}
+.arrow{color:var(--green);font-size:15px}
+
+.bar{height:6px;border-radius:99px;background:var(--panel);border:1px solid var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--green-d),var(--green));transition:width .4s}
+.timer-bar{height:4px;border-radius:99px;background:rgba(255,255,255,0.1);overflow:hidden;margin-top:4px}
+.timer-bar i{display:block;height:100%;width:100%;background:var(--gold);transition:width 1s linear}
+.meta{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--mute);margin-top:-6px}
+.timer-text{font-weight:800;color:var(--gold);font-family:var(--head);font-size:16px}
+
+.opts{display:grid;gap:10px}
+.opt{
+  width:100%;text-align:left;background:var(--panel);color:var(--text);border:1.5px solid var(--line);
+  border-radius:14px;padding:15px 16px;font:600 17px var(--body);cursor:pointer;
+  transition:transform .12s,border-color .12s,background .12s;
+}
+.opt:active{transform:scale(.985)}
+.opt:disabled{cursor:default}
+.opt.ok{background:rgba(31,191,98,.18);border-color:var(--green)}
+.opt.bad{background:rgba(239,68,68,.16);border-color:var(--red);animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+.toast{min-height:44px;border-radius:12px;padding:11px 14px;font-weight:600;font-size:14px;display:none}
+.toast.ok{display:block;background:rgba(31,191,98,.14);color:var(--green)}
+.toast.bad{display:block;background:rgba(239,68,68,.14);color:#ff8a8a;border:1px solid var(--red)}
+
+.btn-group{display:flex;flex-direction:column;gap:10px;width:100%}
+.btn{background:linear-gradient(180deg,var(--gold),var(--gold-d));color:#1a1203;border:0;border-radius:14px;padding:15px;font:800 20px var(--head);letter-spacing:.5px;cursor:pointer;width:100%}
+.btn.pvp{background:linear-gradient(180deg,var(--green),var(--green-d));color:#04140a}
+.btn.joker{background:#183624;color:var(--gold);border:1px solid var(--gold-d);font-size:16px;padding:10px;margin-bottom:8px}
+.btn.joker:disabled{opacity:0.4;border-color:var(--line);color:var(--mute)}
+.btn.ghost{background:transparent;color:var(--gold);border:1.5px solid var(--gold-d)}
+.hide{display:none!important}
+.center{text-align:center}
+
+.logo{font:800 50px/.95 var(--head);letter-spacing:1px}
+.logo span{color:var(--gold)}
+.sub{color:var(--mute);margin:8px 0 16px;line-height:1.4;font-size:14px}
+.big{font:800 72px/1 var(--head);color:var(--gold);margin:6px 0}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 20px}
+.stat{background:#0b1710;border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat b{display:block;font:800 24px var(--head)}
+.stat span{font-size:12px;color:var(--mute)}
+
+/* Hub Grid */
+.hub-grid{display:grid;gap:12px;margin-top:10px}
+.hub-card{background:#0b1710;border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:transform .15s,border-color .15s}
+.hub-card:active{transform:scale(.98)}
+.hub-card:hover{border-color:var(--gold)}
+.hub-info{text-align:left}
+.hub-info h3{font:700 20px var(--head);color:var(--text)}
+.hub-info p{font-size:12px;color:var(--mute);margin-top:2px}
+.hub-icon{font-size:32px;margin-left:10px}
+
+/* Clicker Rejimi */
+.clicker-ball{width:160px;height:160px;margin:20px auto;border-radius:50%;background:radial-gradient(circle at 30% 30%, #ffffff, #888888, #111111);display:grid;place-items:center;font-size:64px;cursor:pointer;user-select:none;box-shadow:0 10px 25px rgba(0,0,0,0.6);transition:transform .08s}
+.clicker-ball:active{transform:scale(.92)}
+
+/* Higher/Lower Rejimi */
+.hl-box{display:grid;gap:12px;margin:16px 0}
+.hl-card{background:#0b1710;border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}
+.hl-name{font:800 24px var(--head);color:var(--text)}
+.hl-val{font:800 32px var(--head);color:var(--gold);margin-top:4px}
+
+.vs-box{display:flex;align-items:center;justify-content:space-around;margin:15px 0}
+.vs-player{text-align:center}
+.vs-avatar{width:50px;height:50px;border-radius:50%;background:var(--green);display:grid;place-items:center;font:800 22px var(--head);color:#05140b;margin:0 auto 6px}
+.vs-text{font:800 32px var(--head);color:var(--gold)}
+
+/* Penalti Rejimi CSS */
+.goal{position:relative;height:150px;margin:10px 0 44px;border:3px solid #fff;border-bottom:0;border-radius:8px 8px 0 0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.06) 0 6px,transparent 6px 12px)}
+.keeper{position:absolute;bottom:6px;left:50%;font-size:46px;transform:translateX(-50%);transition:left .35s ease}
+.pen-ball{position:absolute;bottom:-38px;left:50%;font-size:34px;transform:translateX(-50%)}
+.pen-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.pen-row .btn{font-size:16px;padding:14px 4px}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* Netlify Vidcetini Gizlədən CSS */
+#netlify-modal-kit,
+.netlify-drawer,
+iframe[src*="netlify"],
+[data-netlify-deploy-id],
+div[class*="netlify"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top">
+    <div class="user"><div class="avatar" id="avatar">G</div>
+      <div><div class="uname" id="uname">Oyunçu</div><div class="usub" id="usub">GOLTRIX Arcade</div></div></div>
+    <div class="score"><b id="score">0</b><span id="scoreUnit">xal</span></div>
+  </div>
+
+  <!-- ARCADE HUB (ƏSAS MENYU) -->
+  <section id="start" class="card center">
+    <div class="logo">GOLTRIX<br><span>ARCADE</span></div>
+    <p class="sub">Oynamaq istədiyiniz futbol rejimini seçin!</p>
+
+    <div class="hub-grid">
+      <div class="hub-card" onclick="startMode('trivia')">
+        <div class="hub-info">
+          <h3>⚽ Trivia Arena</h3>
+          <p>Klub sırası ilə futbolçunu tap (50/50 & Timer)</p>
+        </div>
+        <div class="hub-icon">🧩</div>
+      </div>
+
+      <div class="hub-card" onclick="startMode('pvp')">
+        <div class="hub-info">
+          <h3>⚔️ 1v1 PvP Düell</h3>
+          <p>Rəqiblə və ya dostunla canlı yarış</p>
+        </div>
+        <div class="hub-icon">🔥</div>
+      </div>
+
+      <div class="hub-card" onclick="startMode('clicker')">
+        <div class="hub-info">
+          <h3>🛡️ Club Manager Clicker</h3>
+          <p>Ekrana kliklə, GOL-Coin topla və stadionu böyüt</p>
+        </div>
+        <div class="hub-icon">🪙</div>
+      </div>
+
+      <div class="hub-card" onclick="startMode('hl')">
+        <div class="hub-info">
+          <h3>👟 Higher or Lower</h3>
+          <p>Futbolçuların qiymətini müqayisə et (Market Value)</p>
+        </div>
+        <div class="hub-icon">📊</div>
+      </div>
+
+      <div class="hub-card" onclick="startMode('pen')">
+        <div class="hub-info">
+          <h3>🥅 Penalti</h3>
+          <p>5 zərbə, qapıçını aldat və qol vur</p>
+        </div>
+        <div class="hub-icon">🎯</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PVP MATCHMAKING -->
+  <section id="pvpMatch" class="card center hide" style="margin-top:6vh">
+    <div class="q-title">⚔️ PVP DÜELL MENYUSU</div>
+    <div class="vs-box">
+      <div class="vs-player">
+        <div class="vs-avatar" id="p1Avatar">SƏN</div>
+        <div id="p1Name" style="font-size:13px;font-weight:600">Oyunçu</div>
+      </div>
+      <div class="vs-text">VS</div>
+      <div class="vs-player">
+        <div class="vs-avatar" style="background:var(--gold)" id="p2Avatar">?</div>
+        <div id="p2Name" style="font-size:13px;font-weight:600">Rəqib</div>
+      </div>
+    </div>
+    <p class="sub" id="pvpStatus">Aşağıdakı düymələrdən birini seçin:</p>
+    <div class="btn-group">
+      <button class="btn pvp" onclick="startQuickMatch()">🔍 Avtomatik Rəqib Tap (Quick Match)</button>
+      <button class="btn ghost" onclick="shareInvite()">📲 Dostunu Dəvət Et</button>
+      <button class="btn ghost" style="border-color:var(--line);color:var(--mute)" onclick="show('start')">⬅️ Geri Dön</button>
+    </div>
+  </section>
+
+  <!-- OYUN EKRANI (TRIVIA) -->
+  <section id="game" class="hide" style="display:flex;flex-direction:column;gap:14px">
+    <div class="bar"><i id="prog"></i></div>
+    <div class="meta">
+      <span id="qnum">Sual 1/10</span>
+      <span class="timer-text">⏳ <span id="timeLeft">10</span>s</span>
+      <span id="streak">Seriya: 0</span>
+    </div>
+    <div class="timer-bar"><i id="timerBar"></i></div>
+    <div class="card" id="qCard">
+      <div class="q-title">Bu futbolçu kimdir?</div>
+      <div class="path" id="path"></div>
+    </div>
+    <button class="btn joker" id="jokerBtn" onclick="useJoker()">🃏 50/50 Jokeri İstifadə Et</button>
+    <div class="opts" id="opts"></div>
+    <div class="toast" id="toast"></div>
+    <button class="btn hide" id="nextBtn" onclick="nextQuestion()">Növbəti sual</button>
+    <button class="btn ghost" onclick="show('start')">⬅️ Əsas Menyu</button>
+  </section>
+
+  <!-- CLICKER REJİMİ EKRANI -->
+  <section id="clickerMode" class="card center hide">
+    <div class="q-title">🛡️ CLUB MANAGER</div>
+    <p class="sub">Ekrana toxunaraq GOL-Coin toplayın!</p>
+    <div class="big" id="coinCount">0</div>
+    <div class="usub" style="margin-bottom:10px">GOL-Coin Balansı</div>
+
+    <div class="clicker-ball" id="ballBtn">⚽</div>
+
+    <div class="stat" style="margin-bottom:14px">
+      <b id="stadiumLvl">Stadion: Level 1</b>
+      <span id="stadiumCost">Yeniləmə: 100 Coin (+2 Coin/sec)</span>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn" onclick="upgradeStadium()">🏟️ Stadionu Böyüt</button>
+      <button class="btn ghost" onclick="show('start')">⬅️ Əsas Menyusa Dön</button>
+    </div>
+  </section>
+
+  <!-- HIGHER OR LOWER REJİMİ EKRANI -->
+  <section id="hlMode" class="card center hide">
+    <div class="q-title">👟 HIGHER OR LOWER</div>
+    <p class="sub">İkinci futbolçunun bazar dəyəri birincidən daha bahadır, yoksa ucuz?</p>
+
+    <div class="hl-box">
+      <div class="hl-card">
+        <div class="hl-name" id="hl1Name">Kylian Mbappé</div>
+        <div class="hl-val" id="hl1Val">180M €</div>
+      </div>
+      <div style="font:800 24px var(--head);color:var(--gold)">VS</div>
+      <div class="hl-card" style="border-color:var(--gold)">
+        <div class="hl-name" id="hl2Name">Lamine Yamal</div>
+        <div class="hl-val" id="hl2Val">?</div>
+      </div>
+    </div>
+
+    <div class="btn-group" id="hlBtns">
+      <button class="btn pvp" onclick="guessHL(true)">🔼 Daha Baha (Higher)</button>
+      <button class="btn" style="background:linear-gradient(180deg,#ef4444,#b91c1c);color:#fff" onclick="guessHL(false)">🔽 Daha Ucuz (Lower)</button>
+    </div>
+    <div class="toast" id="hlToast" style="margin-top:10px"></div>
+  </section>
+
+  <!-- PENALTİ REJİMİ EKRANI -->
+  <section id="penMode" class="card center hide">
+    <div class="q-title">🥅 PENALTİ</div>
+    <p class="sub" id="penInfo">Zərbə 1/5 · Qol: 0</p>
+    <div class="goal">
+      <div class="keeper" id="keeper">🧤</div>
+      <div class="pen-ball" id="penBall">⚽</div>
+    </div>
+    <div class="btn-group">
+      <div class="pen-row">
+        <button class="btn pvp" onclick="shoot(0)">⬅️ Sol</button>
+        <button class="btn pvp" onclick="shoot(1)">⬆️ Orta</button>
+        <button class="btn pvp" onclick="shoot(2)">➡️ Sağ</button>
+      </div>
+      <button class="btn ghost" onclick="show('start')">⬅️ Əsas Menyu</button>
+    </div>
+    <div class="toast" id="penToast" style="margin-top:10px"></div>
+  </section>
+
+  <!-- SON NƏTİCƏ EKRANI -->
+  <section id="end" class="card center hide">
+    <div class="logo" style="font-size:40px" id="endTitle">OYUN <span>BİTDİ</span></div>
+    <div class="big" id="finalScore">0</div>
+    <div class="usub" id="rank"></div>
+    <div class="stats">
+      <div class="stat"><b id="sCorrect">0</b><span id="sCorrectSub">Doğru cavab</span></div>
+      <div class="stat"><b id="sBestScore">0</b><span>Şəxsi Rekord</span></div>
+    </div>
+    <div class="btn-group">
+      <button class="btn" onclick="show('start')">🏠 Əsas Menyu</button>
+      <button class="btn pvp" onclick="shareInvite()">📲 Dostunu Dəvət Et</button>
+    </div>
+  </section>
+</div>
+
+<script>
+const tg = window.Telegram && Telegram.WebApp;
+if (tg) {
+  tg.ready(); tg.expand();
+  try { tg.setHeaderColor('#07100b'); tg.setBackgroundColor('#07100b'); } catch(e){}
+}
+const haptic = (kind, type) => { try { tg && tg.HapticFeedback && tg.HapticFeedback[kind](type); } catch(e){} };
+
+const notify = m => (tg && tg.showAlert) ? tg.showAlert(m) : alert(m);
+
+const questions = [
+  {player:"Cristiano Ronaldo", clubs:["Sporting CP","Man United","Real Madrid","Juventus","Al Nassr"]},
+  {player:"Lionel Messi", clubs:["Barcelona","PSG","Inter Miami"]},
+  {player:"Neymar", clubs:["Santos","Barcelona","PSG","Al Hilal"]},
+  {player:"Kylian Mbappé", clubs:["Monaco","PSG","Real Madrid"]},
+  {player:"Erling Haaland", clubs:["Molde","Salzburg","Dortmund","Man City"]},
+  {player:"Zlatan Ibrahimović", clubs:["Malmö","Ajax","Juventus","Inter","Barcelona","AC Milan","PSG","Man United","LA Galaxy"]},
+  {player:"Luka Modrić", clubs:["Dinamo Zagreb","Tottenham","Real Madrid"]},
+  {player:"Karim Benzema", clubs:["Lyon","Real Madrid","Al-Ittihad"]},
+  {player:"Mohamed Salah", clubs:["Basel","Chelsea","Fiorentina","Roma","Liverpool"]},
+  {player:"Robert Lewandowski", clubs:["Lech Poznań","Dortmund","Bayern","Barcelona"]},
+  {player:"Harry Kane", clubs:["Tottenham","Bayern"]},
+  {player:"Kevin De Bruyne", clubs:["Genk","Chelsea","Werder Bremen","Wolfsburg","Man City"]},
+  {player:"Luis Suárez", clubs:["Nacional","Groningen","Ajax","Liverpool","Barcelona","Atlético Madrid","Inter Miami"]},
+  {player:"Gareth Bale", clubs:["Southampton","Tottenham","Real Madrid","LAFC"]},
+  {player:"Eden Hazard", clubs:["Lille","Chelsea","Real Madrid"]},
+  {player:"Thierry Henry", clubs:["Monaco","Juventus","Arsenal","Barcelona","NY Red Bulls"]},
+  {player:"Ronaldinho", clubs:["Grêmio","PSG","Barcelona","AC Milan","Flamengo"]},
+  {player:"David Beckham", clubs:["Man United","Real Madrid","LA Galaxy","AC Milan","PSG"]},
+  {player:"Son Heung-min", clubs:["Hamburg","Bayer Leverkusen","Tottenham"]},
+  {player:"Sergio Agüero", clubs:["Independiente","Atlético Madrid","Man City","Barcelona"]},
+  {player:"Angel Di Maria", clubs:["Rosario Central","Benfica","Real Madrid","Man United","PSG","Juventus","Benfica"]},
+  {player:"Antoine Griezmann", clubs:["Real Sociedad","Atlético Madrid","Barcelona","Atlético Madrid"]},
+  {player:"Toni Kroos", clubs:["Bayer Leverkusen","Bayern","Real Madrid"]},
+  {player:"Mesut Özil", clubs:["Schalke","Werder Bremen","Real Madrid","Arsenal","Fenerbahçe"]},
+  {player:"Wayne Rooney", clubs:["Everton","Man United","Everton","DC United","Derby County"]},
+  {player:"Xavi Hernandez", clubs:["Barcelona","Al Sadd"]},
+  {player:"Andrés Iniesta", clubs:["Barcelona","Vissel Kobe","Emirates Club"]},
+  {player:"Andrea Pirlo", clubs:["Brescia","Inter","AC Milan","Juventus","NY City"]},
+  {player:"Kaka", clubs:["São Paulo","AC Milan","Real Madrid","Orlando City"]},
+  {player:"Cesc Fàbregas", clubs:["Arsenal","Barcelona","Chelsea","Monaco","Como"]},
+  {player:"Alexis Sánchez", clubs:["River Plate","Udinese","Barcelona","Arsenal","Man United","Inter","Marseille"]},
+  {player:"James Rodríguez", clubs:["Porto","Monaco","Real Madrid","Bayern","Everton","Olympiacos","São Paulo","Rayo Vallecano"]},
+  {player:"Romelu Lukaku", clubs:["Anderlecht","Chelsea","West Brom","Everton","Man United","Inter","Roma","Napoli"]},
+  {player:"Thiago Silva", clubs:["Fluminense","AC Milan","PSG","Chelsea","Fluminense"]},
+  {player:"Paul Pogba", clubs:["Le Havre","Man United","Juventus","Man United","Juventus"]},
+  {player:"Memphis Depay", clubs:["PSV","Man United","Lyon","Barcelona","Atlético Madrid","Corinthians"]},
+  {player:"Pierre-Emerick Aubameyang", clubs:["Saint-Étienne","Dortmund","Arsenal","Barcelona","Chelsea","Marseille","Al Qadsiah"]},
+  {player:"Sadio Mané", clubs:["Metz","Salzburg","Southampton","Liverpool","Bayern","Al Nassr"]},
+  {player:"Jude Bellingham", clubs:["Birmingham City","Dortmund","Real Madrid"]},
+  {player:"Vinícius Júnior", clubs:["Flamengo","Real Madrid"]}
+];
+
+const hlPlayers = [
+  {name:"Kylian Mbappé", val:180},
+  {name:"Erling Haaland", val:180},
+  {name:"Jude Bellingham", val:180},
+  {name:"Vinícius Júnior", val:180},
+  {name:"Lamine Yamal", val:150},
+  {name:"Phil Foden", val:150},
+  {name:"Bukayo Saka", val:140},
+  {name:"Florian Wirtz", val:130},
+  {name:"Jamal Musiala", val:130},
+  {name:"Rodri", val:130},
+  {name:"Harry Kane", val:100},
+  {name:"Lautaro Martínez", val:110},
+  {name:"Declan Rice", val:120},
+  {name:"Victor Osimhen", val:75},
+  {name:"Lionel Messi", val:25},
+  {name:"Cristiano Ronaldo", val:15}
+];
+
+const botOpponents = ["Elvin_99", "Bakool_FC", "Tural_77", "Futbolçu_007", "Rauf_Baku"];
+
+const ROUND = 10, POINTS = 100, QUESTION_TIME = 10;
+let deck, idx, score, correct, streak, best, locked, timerInterval, timeLeft, isPvp = false, pvpBotScore = 0, jokerUsed = false;
+let coins = parseInt(localStorage.getItem('goltrix_coins') || '0');
+let stadiumLvl = parseInt(localStorage.getItem('goltrix_stadium_lvl') || '1');
+let hlP1, hlP2, hlScore = 0, hlTimer;
+
+/* PENALTİ DƏYİŞƏNLƏRİ */
+const PEN_SHOTS = 5, ZONES = [17, 50, 83];
+let penShot = 0, penGoals = 0, penBusy = false, penTimer;
+
+const $ = id => document.getElementById(id);
+const shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]} return a; };
+
+const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+const name = user ? [user.first_name, user.last_name].filter(Boolean).join(' ') : 'Oyunçu';
+$('uname').textContent = name;
+$('avatar').textContent = name.charAt(0).toUpperCase();
+$('p1Name').textContent = name;
+$('p1Avatar').textContent = name.charAt(0).toUpperCase();
+if (user && user.username) $('usub').textContent = '@' + user.username;
+
+function show(id){
+  clearInterval(timerInterval);
+  clearTimeout(hlTimer);
+  clearTimeout(penTimer);
+  if (id === 'start' || id === 'pvpMatch') {
+    $('scoreUnit').textContent = 'xal';
+    $('score').textContent = 0;
+  }
+  ['start','pvpMatch','game','clickerMode','hlMode','penMode','end'].forEach(s => $(s).classList.toggle('hide', s !== id));
+}
+
+function startMode(mode){
+  if (mode === 'trivia') startGame(false);
+  else if (mode === 'pvp') show('pvpMatch');
+  else if (mode === 'clicker') initClicker();
+  else if (mode === 'hl') initHL();
+  else if (mode === 'pen') initPen();
+}
+
+/* TRIVIA & PVP LOGIC */
+function startGame(pvpMode = false){
+  isPvp = pvpMode; pvpBotScore = 0; jokerUsed = false;
+  $('jokerBtn').disabled = false;
+  $('jokerBtn').textContent = '🃏 50/50 Jokeri İstifadə Et';
+  $('scoreUnit').textContent = 'xal';
+  if (tg) tg.MainButton.hide();
+
+  deck = shuffle(questions).slice(0, ROUND);
+  idx = 0; score = 0; correct = 0; streak = 0; best = 0;
+  $('score').textContent = 0;
+  $('qCard').classList.toggle('pvp-card', isPvp);
+  show('game'); renderQuestion();
+}
+
+function startQuickMatch(){
+  $('p2Name').textContent = "Axtarılır...";
+  $('p2Avatar').textContent = "?";
+  $('pvpStatus').textContent = "Rəqib seçilir...";
+  const randomBot = botOpponents[Math.floor(Math.random() * botOpponents.length)];
+
+  setTimeout(() => {
+    $('p2Name').textContent = "@" + randomBot;
+    $('p2Avatar').textContent = randomBot.charAt(0);
+    $('pvpStatus').textContent = "Rəqib tapıldı! Oyun başlayır...";
+    haptic('notificationOccurred','success');
+    setTimeout(() => { startGame(true); }, 1200);
+  }, 1800);
+}
+
+function startTimer(){
+  clearInterval(timerInterval);
+  timeLeft = QUESTION_TIME;
+  $('timeLeft').textContent = timeLeft;
+  $('timerBar').style.width = '100%';
+
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    $('timeLeft').textContent = timeLeft;
+    $('timerBar').style.width = (timeLeft / QUESTION_TIME * 100) + '%';
+    if (timeLeft <= 0) { clearInterval(timerInterval); timeOut(); }
+  }, 1000);
+}
+
+function timeOut(){
+  if (locked) return; locked = true;
+  const q = deck[idx], t = $('toast');
+  document.querySelectorAll('.opt').forEach(b => { b.disabled = true; if (b.textContent === q.player) b.classList.add('ok'); });
+  streak = 0;
+  if (isPvp && Math.random() > 0.3) pvpBotScore += POINTS;
+
+  t.className = 'toast bad'; t.textContent = `⏰ Vaxt bitdi! Doğru cavab: ${q.player}`;
+  haptic('notificationOccurred','error');
+  $('streak').textContent = `Seriya: ${streak}`;
+  $('nextBtn').textContent = idx === deck.length-1 ? 'Nəticəni gör' : 'Növbəti sual';
+  $('nextBtn').classList.remove('hide');
+}
+
+function renderQuestion(){
+  locked = false;
+  const q = deck[idx];
+  $('qnum').textContent = `Sual ${idx+1}/${deck.length}` + (isPvp ? ' (PvP)' : '');
+  $('streak').textContent = `Seriya: ${streak}`;
+  $('prog').style.width = (idx / deck.length * 100) + '%';
+  $('path').innerHTML = q.clubs.map((c,i) =>
+    (i ? '<span class="arrow">➔</span>' : '') + `<span class="club${i===q.clubs.length-1?' last':''}">${c}</span>`
+  ).join('');
+  const wrong = shuffle(questions.filter(x => x.player !== q.player)).slice(0,3).map(x => x.player);
+  const opts = shuffle([q.player, ...wrong]);
+  $('opts').innerHTML = '';
+  opts.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'opt'; b.textContent = o;
+    b.onclick = () => answer(b, o);
+    $('opts').appendChild(b);
+  });
+  $('toast').className = 'toast';
+  $('nextBtn').classList.add('hide');
+  startTimer();
+}
+
+function useJoker(){
+  if (jokerUsed || locked) return;
+  jokerUsed = true;
+  $('jokerBtn').disabled = true;
+  $('jokerBtn').textContent = '🃏 Joker İstifadə Olundu';
+  const q = deck[idx];
+  const buttons = Array.from(document.querySelectorAll('.opt'));
+  const wrongButtons = buttons.filter(b => b.textContent !== q.player);
+  shuffle(wrongButtons).slice(0, 2).forEach(b => { b.style.visibility = 'hidden'; b.disabled = true; });
+  haptic('impactOccurred','medium');
+}
+
+function answer(btn, choice){
+  if (locked) return; locked = true;
+  clearInterval(timerInterval);
+  const q = deck[idx], t = $('toast');
+  document.querySelectorAll('.opt').forEach(b => { b.disabled = true; if (b.textContent === q.player) b.classList.add('ok'); });
+
+  if (choice === q.player){
+    score += POINTS; correct++; streak++; best = Math.max(best, streak);
+    $('score').textContent = score;
+    t.className = 'toast ok'; t.textContent = `Düzdür! +${POINTS} xal`;
+    haptic('notificationOccurred','success');
+  } else {
+    streak = 0; btn.classList.add('bad');
+    t.className = 'toast bad'; t.textContent = `Səhv cavab. Doğrusu: ${q.player}`;
+    haptic('notificationOccurred','error');
+  }
+  if (isPvp && Math.random() > 0.3) pvpBotScore += POINTS;
+
+  $('streak').textContent = `Seriya: ${streak}`;
+  $('nextBtn').textContent = idx === deck.length-1 ? 'Nəticəni gör' : 'Növbəti sual';
+  $('nextBtn').classList.remove('hide');
+}
+
+function nextQuestion(){
+  if (++idx >= deck.length) return finishGame();
+  renderQuestion();
+}
+
+function finishGame(){
+  clearInterval(timerInterval);
+  $('prog').style.width = '100%';
+
+  if (isPvp) {
+    if (score > pvpBotScore) {
+      score += 200;
+      $('endTitle').innerHTML = '⚔️ PvP <span>QƏLƏBƏ!</span>';
+      $('rank').textContent = `Rəqibini məğlub etdin! (${score} vs ${pvpBotScore} xal)`;
+    } else if (score === pvpBotScore) {
+      $('endTitle').innerHTML = '⚔️ PvP <span>HEÇ-HEÇƏ</span>';
+      $('rank').textContent = `Bərabərlik! (${score} xal)`;
+    } else {
+      $('endTitle').innerHTML = '⚔️ PvP <span>MƏĞLUBİYYƏT</span>';
+      $('rank').textContent = `Rəqib üstün oldu! (${score} vs ${pvpBotScore} xal)`;
+    }
+  } else {
+    $('endTitle').innerHTML = 'OYUN <span>BİTDİ</span>';
+    const r = correct >= 9 ? 'Əfsanə səviyyəsi' : correct >= 7 ? 'Ulduz futbolçu' : 'Əsas heyət';
+    $('rank').textContent = r;
+  }
+
+  let bestScore = parseInt(localStorage.getItem('goltrix_best_score') || '0');
+  if (score > bestScore) { bestScore = score; localStorage.setItem('goltrix_best_score', bestScore); }
+
+  $('finalScore').textContent = score;
+  $('sCorrect').textContent = `${correct}/${deck.length}`;
+  $('sCorrectSub').textContent = "Doğru cavab";
+  $('sBestScore').textContent = bestScore;
+  show('end');
+}
+
+/* CLICKER MODE LOGIC */
+function initClicker(){
+  show('clickerMode');
+  $('scoreUnit').textContent = 'Coin';
+  updateClickerUI();
+}
+
+$('ballBtn').onclick = () => {
+  coins += 1;
+  localStorage.setItem('goltrix_coins', coins);
+  updateClickerUI();
+  haptic('impactOccurred','light');
+};
+
+function updateClickerUI(){
+  $('coinCount').textContent = coins;
+  $('score').textContent = coins;
+  $('stadiumLvl').textContent = `Stadion: Level ${stadiumLvl}`;
+  const cost = stadiumLvl * 100;
+  $('stadiumCost').textContent = `Yeniləmə: ${cost} Coin (+${stadiumLvl*2} Coin/sec)`;
+}
+
+function upgradeStadium(){
+  const cost = stadiumLvl * 100;
+  if (coins >= cost) {
+    coins -= cost;
+    stadiumLvl++;
+    localStorage.setItem('goltrix_coins', coins);
+    localStorage.setItem('goltrix_stadium_lvl', stadiumLvl);
+    updateClickerUI();
+    haptic('notificationOccurred','success');
+  } else {
+    notify("Kifayət qədər GOL-Coin yoxdur!");
+    haptic('notificationOccurred','error');
+  }
+}
+
+setInterval(() => {
+  if (stadiumLvl > 1) {
+    coins += (stadiumLvl - 1) * 2;
+    localStorage.setItem('goltrix_coins', coins);
+    if (!$('clickerMode').classList.contains('hide')) updateClickerUI();
+  }
+}, 1000);
+
+/* HIGHER OR LOWER LOGIC */
+function initHL(){
+  show('hlMode');
+  $('scoreUnit').textContent = 'xal';
+  $('score').textContent = 0;
+  hlScore = 0;
+
+  const pool = shuffle(hlPlayers);
+  hlP1 = pool[0];
+  hlP2 = pool.find(p => p.val !== hlP1.val);
+  renderHL();
+}
+
+function renderHL(){
+  $('hl1Name').textContent = hlP1.name;
+  $('hl1Val').textContent = hlP1.val + 'M €';
+  $('hl2Name').textContent = hlP2.name;
+  $('hl2Val').textContent = '?';
+  $('hlToast').className = 'toast';
+  $('hlBtns').classList.remove('hide');
+}
+
+function guessHL(isHigher){
+  const correctHL = isHigher ? (hlP2.val > hlP1.val) : (hlP2.val < hlP1.val);
+  $('hl2Val').textContent = hlP2.val + 'M €';
+  $('hlBtns').classList.add('hide');
+  const t = $('hlToast');
+
+  if (correctHL) {
+    hlScore += 100;
+    $('score').textContent = hlScore;
+    t.className = 'toast ok'; t.textContent = `Düzdür! +100 xal (Toplam: ${hlScore})`;
+    haptic('notificationOccurred','success');
+
+    hlTimer = setTimeout(() => {
+      hlP1 = hlP2;
+      hlP2 = shuffle(hlPlayers.filter(p => p.val !== hlP1.val))[0];
+      renderHL();
+    }, 1500);
+  } else {
+    t.className = 'toast bad'; t.textContent = `Səhvdir! Qalibiyyət seriyanız bitdi.`;
+    haptic('notificationOccurred','error');
+    hlTimer = setTimeout(() => {
+      let bestHL = parseInt(localStorage.getItem('goltrix_hl_best') || '0');
+      if (hlScore > bestHL) { bestHL = hlScore; localStorage.setItem('goltrix_hl_best', bestHL); }
+      $('endTitle').innerHTML = 'HIGHER/LOWER <span>BİTDİ</span>';
+      $('rank').textContent = '';
+      $('finalScore').textContent = hlScore;
+      $('sCorrect').textContent = hlScore / 100;
+      $('sCorrectSub').textContent = "Doğru seriya";
+      $('sBestScore').textContent = bestHL;
+      show('end');
+    }, 1800);
+  }
+}
+
+/* PENALTİ LOGIC */
+function initPen(){
+  show('penMode');
+  $('scoreUnit').textContent = 'xal';
+  $('score').textContent = 0;
+  penShot = 0; penGoals = 0; penBusy = false;
+  resetPen();
+}
+
+function resetPen(){
+  const b = $('penBall');
+  b.style.transition = 'none';
+  b.style.left = '50%'; b.style.bottom = '-38px';
+  $('keeper').style.left = '50%';
+  $('penInfo').textContent = `Zərbə ${penShot + 1}/${PEN_SHOTS} · Qol: ${penGoals}`;
+  $('penToast').className = 'toast';
+}
+
+function shoot(z){
+  if (penBusy) return;
+  penBusy = true;
+  const k = Math.random() * 3 | 0;
+  const b = $('penBall');
+  void b.offsetWidth;
+  b.style.transition = 'left .35s ease, bottom .35s ease';
+  b.style.left = ZONES[z] + '%';
+  b.style.bottom = '50px';
+  $('keeper').style.left = ZONES[k] + '%';
+  const t = $('penToast');
+
+  setTimeout(() => {
+    if (z !== k) {
+      penGoals++;
+      $('score').textContent = penGoals * 100;
+      t.className = 'toast ok'; t.textContent = '⚽ QOOOL! +100 xal';
+      haptic('notificationOccurred', 'success');
+    } else {
+      t.className = 'toast bad'; t.textContent = '🧤 Qapıçı qurtardı!';
+      haptic('notificationOccurred', 'error');
+    }
+    $('penInfo').textContent = `Zərbə ${penShot + 1}/${PEN_SHOTS} · Qol: ${penGoals}`;
+  }, 400);
+
+  penTimer = setTimeout(() => {
+    penShot++;
+    if (penShot >= PEN_SHOTS) return finishPen();
+    penBusy = false;
+    resetPen();
+  }, 1700);
+}
+
+function finishPen(){
+  const finalPts = penGoals * 100;
+  let bestPen = parseInt(localStorage.getItem('goltrix_pen_best') || '0');
+  if (finalPts > bestPen) { bestPen = finalPts; localStorage.setItem('goltrix_pen_best', bestPen); }
+  $('endTitle').innerHTML = 'PENALTİ <span>BİTDİ</span>';
+  $('finalScore').textContent = finalPts;
+  $('rank').textContent = penGoals === PEN_SHOTS ? 'Əfsanə vurucu' : penGoals >= 3 ? 'Etibarlı penaltiçi' : 'Məşq lazımdır';
+  $('sCorrect').textContent = `${penGoals}/${PEN_SHOTS}`;
+  $('sCorrectSub').textContent = 'Qol';
+  $('sBestScore').textContent = bestPen;
+  show('end');
+}
+
+/* SOCIAL SHARE */
+function shareInvite(){
+  if (tg) {
+    const shareText = `GOLTRIX Arcade-də futbol biliklərimi yoxlayıram! Canlı düellə gəl yarışaq! ⚽🔥`;
+    tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent('https://t.me/gollarenabot')}&text=${encodeURIComponent(shareText)}`);
+  } else {
+    notify("Telegram tətbiqindən paylaşın!");
+  }
+}
+</script>
+</body>
+</html>
